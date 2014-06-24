@@ -2,7 +2,6 @@ package jsonpatch
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	ptr "github.com/xeipuuv/gojsonpointer"
 	"strings"
@@ -37,13 +36,12 @@ func TestAdd(t *testing.T) {
 	assert.Equal(t, "!test!", value)
 }
 
-func TestApplyFromString(t *testing.T) {
-	fmt.Print("")
+func TestApplyOpFromString(t *testing.T) {
 	doc := getMapDoc(`{"foo": "bar"}`)
 
-	patchOp, err := FromString(`{"op": "add", "path": "/baz", "value": "qux"}`)
+	patch, err := FromString(`[{"op": "add", "path": "/baz", "value": "qux"}]`)
 	assert.Nil(t, err)
-	patchOp.Apply(&doc)
+	patch.Operations[0].Apply(&doc)
 	val, found := doc["baz"]
 	assert.True(t, found)
 	assert.Equal(t, "qux", val.(string))
@@ -270,9 +268,9 @@ func TestTestNoValNotExistingNested(t *testing.T) {
 
 func TestUnrecognizedElement(t *testing.T) {
 	doc := getMapDoc(`{"foo": "bar", "baz": "qux"}`)
-	patchOp, err := FromString(`{"op": "replace", "path": "/baz", "value": "boo", "something": "baz"}`)
+	patch, err := FromString(`[{"op": "replace", "path": "/baz", "value": "boo", "something": "baz"}]`)
 	assert.Nil(t, err)
-	err = patchOp.Apply(&doc)
+	err = patch.Operations[0].Apply(&doc)
 	assert.Nil(t, err)
 	assert.Equal(t, "boo", doc["baz"].(string))
 }

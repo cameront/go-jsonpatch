@@ -51,17 +51,22 @@ func getValue(path string, doc interface{}) (*ptr.JsonPointer, reflect.Kind, int
 }
 
 func (self *PatchOperation) Apply(doc interface{}) error {
-	doct, isMap := doc.(*map[string]interface{})
 	var mod map[string]interface{}
-	if isMap {
-		mod = map[string]interface{}{"__": *doct}
+	isMap := true
+	// This is ugly and hacky, but because the version of jsonpointer we're using
+	// doesn't replace the entire document for empty paths, we nest it one level
+	// deep and prefix the from/path with our own key.
+	switch t := doc.(type) {
+	case *map[string]interface{}:
+		mod = map[string]interface{}{"jp": *t}
+	case *[]interface{}:
+		mod = map[string]interface{}{"jp": *t}
+		isMap = false
+	default:
+		return fmt.Errorf("Can only apply to pointers to maps and arrays of interfaces.")
 	}
-	doca, isArr := doc.(*[]interface{})
-	if isArr {
-		mod = map[string]interface{}{"__": *doca}
-	}
-	path := "/__" + self.Path
-	from := "/__" + self.From
+	path := "/jp" + self.Path
+	from := "/jp" + self.From
 	var err error
 	switch self.Op {
 	case Add:
@@ -79,10 +84,11 @@ func (self *PatchOperation) Apply(doc interface{}) error {
 	default:
 		err = fmt.Errorf("Unknown operation type: %s", self.Op)
 	}
+	// Convert it back out before returning.
 	if isMap {
-		*doct = mod["__"].(map[string]interface{})
-	} else if isArr {
-		*doca = mod["__"].([]interface{})
+		*doc.(*map[string]interface{}) = mod["jp"].(map[string]interface{})
+	} else {
+		*doc.(*[]interface{}) = mod["jp"].([]interface{})
 	}
 	return err
 }
