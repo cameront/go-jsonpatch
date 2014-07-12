@@ -284,6 +284,24 @@ func TestAppend(t *testing.T) {
 	assert.Equal(t, []interface{}{1, 2, 3, 4}, doc["foo"].([]interface{}))
 }
 
+// test when type of input is interface{}
+func TestIntDoc(t *testing.T) {
+	doc := getIntDoc(`{"this": {"is": [1,2,3], "my": {"document": 1}}}`)
+	op := PatchOperation{Op: "add", Path: "/this/my/jam", Value: "!test!"}
+	op.Apply(&doc)
+	value := getValueAt(op.Path, doc)
+	assert.Equal(t, "!test!", value)
+
+	doc = getIntDoc(`[{"foo":[]}, {"bar":[]}]`)
+	op = PatchOperation{Op: "move", From: "/0", Path: "/0/bar/0"}
+	op.Apply(&doc)
+	assert.Equal(t, 1, len(doc.([]interface{})))
+	bar := map[string]interface{}{"bar": []interface{}{
+		map[string]interface{}{"foo": []interface{}{}},
+	}}
+	assert.Equal(t, bar, doc.([]interface{})[0])
+}
+
 func getValueAt(path string, doc interface{}) interface{} {
 	pathPtr, err := ptr.NewJsonPointer(path)
 	if err != nil {
@@ -310,6 +328,14 @@ func getArrDoc(raw string) []interface{} {
 		panic(err)
 	}
 	return doc.([]interface{})
+}
+
+func getIntDoc(raw string) interface{} {
+	var doc interface{}
+	if err := json.Unmarshal([]byte(raw), &doc); err != nil {
+		panic(err)
+	}
+	return doc
 }
 
 /*
