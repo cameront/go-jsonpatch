@@ -12,6 +12,8 @@ func TestMakePatch(t *testing.T) {
 	patch, err := MakePatch(docA, docB)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(patch.Operations))
+	// TODO: This test must depend on the ordering of a map iteration, because I'm getting
+	// occasional failures occasionally with the ordering of the following two lines.
 	assert.Equal(t, PatchOperation{Op: "replace", Path: "/this/is", Value: "sir"}, patch.Operations[0])
 	assert.Equal(t, PatchOperation{Op: "replace", Path: "/this/document", Value: "my"}, patch.Operations[1])
 	assert.Equal(t, PatchOperation{Op: "add", Path: "/this/now", Value: map[string]interface{}{"go": "away!"}}, patch.Operations[2])
