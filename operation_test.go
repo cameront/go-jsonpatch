@@ -127,6 +127,8 @@ func TestErrIfPtrNotPassed(t *testing.T) {
 	doc := getMapDoc(`{"foo":"bar"}`)
 	patchOp := PatchOperation{Op: "replace", Path: "", Value: map[string]interface{}{"baz": "qux"}}
 	err := patchOp.Apply(doc)
+	// This should be a non-nil error because it's impossible for Apply to replace the object with
+	// the one I've specified (note: empty path) without receiving a pointer to doc.
 	assert.NotNil(t, err)
 }
 
