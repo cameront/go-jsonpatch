@@ -76,6 +76,10 @@ func TestAddArrayItem(t *testing.T) {
 	patchOp := PatchOperation{Op: "add", Path: "/foo/1", Value: "qux"}
 	patchOp.Apply(&doc)
 	assert.Equal(t, []interface{}{"bar", "qux", "baz"}, doc["foo"].([]interface{}))
+
+	patchOp = PatchOperation{Op: "add", Path: "/foo/4", Value: "qux"}
+	err := patchOp.Apply(&doc)
+	assert.NotNil(t, err)
 }
 
 func TestRemoveObjectKey(t *testing.T) {
@@ -91,6 +95,10 @@ func TestRemoveArrayItem(t *testing.T) {
 	patchOp := PatchOperation{Op: "remove", Path: "/foo/1"}
 	patchOp.Apply(&doc)
 	assert.Equal(t, []interface{}{"bar", "baz"}, doc["foo"].([]interface{}))
+
+	patchOp = PatchOperation{Op: "remove", Path: "/foo/3"}
+	err := patchOp.Apply(&doc)
+	assert.NotNil(t, err)
 }
 
 func TestReplaceObjectKey(t *testing.T) {
@@ -120,6 +128,10 @@ func TestReplaceArrayItem(t *testing.T) {
 	patchOp := PatchOperation{Op: "replace", Path: "/foo/1", Value: "boo"}
 	patchOp.Apply(&doc)
 	assert.Equal(t, []interface{}{"bar", "boo", "baz"}, doc["foo"].([]interface{}))
+
+	patchOp = PatchOperation{Op: "replace", Path: "/foo/4", Value: "boo"}
+	err := patchOp.Apply(&doc)
+	assert.NotNil(t, err)
 }
 
 func TestMoveObjKeyErr(t *testing.T) {
