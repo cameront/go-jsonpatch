@@ -118,6 +118,9 @@ func add(path string, value interface{}, doc interface{}) error {
 			if index, err = strconv.Atoi(lastToken); err != nil {
 				return err
 			}
+			if index > len(existing) {
+				return fmt.Errorf("Index out of range.")
+			}
 		}
 		existing = append(existing, 0)
 		copy(existing[index+1:], existing[index:])
@@ -169,11 +172,15 @@ func remove(path string, doc interface{}) error {
 		m := parentVal.(map[string]interface{})
 		delete(m, lastToken)
 	case reflect.Slice:
+		existing := parentVal.([]interface{})
 		index, err := strconv.Atoi(lastToken)
 		if err != nil {
 			return err
 		}
-		existing := parentVal.([]interface{})
+		if index > len(existing) {
+			return fmt.Errorf("Index out of range.")
+		}
+
 		existing[index] = nil
 		copy(existing[index:], existing[index+1:])
 		existing = existing[0 : len(existing)-1]
@@ -211,6 +218,10 @@ func replace(path string, value interface{}, doc interface{}) error {
 		if err != nil {
 			return err
 		}
+		if index > len(s) {
+			return fmt.Errorf("Index out of range.")
+		}
+
 		s[index] = value
 	default:
 		return fmt.Errorf("Unable to replace item of kind %s", parentKind)
