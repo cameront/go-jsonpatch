@@ -109,18 +109,25 @@ func TestReplaceObjectKey(t *testing.T) {
 }
 
 func TestReplaceWholeDocument(t *testing.T) {
-	//doc := getMapDoc(`{"foo":"bar"}`)
-	//patchOp := PatchOperation{Op: "replace", Path: "", Value: map[string]interface{}{"baz": "qux"}}
-	//patchOp.Apply(&doc)
-	//assert.Equal(t, "quz", doc["baz"].(string))
+	doc := getMapDoc(`{"foo":"bar"}`)
+	patchOp := PatchOperation{Op: "replace", Path: "", Value: map[string]interface{}{"baz": "qux"}}
+	patchOp.Apply(&doc)
+	assert.Equal(t, "qux", doc["baz"].(string))
 }
 
 func TestAddReplaceWholeDocument(t *testing.T) {
-	//doc := getMapDoc(`{"foo":"bar"}`)
-	//patchOp := PatchOperation{Op: "add", Path: "", Value: map[string]interface{}{"baz": "qux"}}
-	//patchOp.Apply(&doc)
-	//assert.Equal(t, 1, len(doc))
-	//assert.Equal(t, "qux", doc["baz"].(string))
+	doc := getMapDoc(`{"foo":"bar"}`)
+	patchOp := PatchOperation{Op: "add", Path: "", Value: map[string]interface{}{"baz": "qux"}}
+	patchOp.Apply(&doc)
+	assert.Equal(t, 1, len(doc))
+	assert.Equal(t, "qux", doc["baz"].(string))
+}
+
+func TestErrIfPtrNotPassed(t *testing.T) {
+	doc := getMapDoc(`{"foo":"bar"}`)
+	patchOp := PatchOperation{Op: "replace", Path: "", Value: map[string]interface{}{"baz": "qux"}}
+	err := patchOp.Apply(doc)
+	assert.NotNil(t, err)
 }
 
 func TestReplaceArrayItem(t *testing.T) {
