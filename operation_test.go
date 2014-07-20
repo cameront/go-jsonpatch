@@ -288,6 +288,9 @@ func TestAppend(t *testing.T) {
 func TestIntDoc(t *testing.T) {
 	doc := getIntDoc(`{"this": {"is": [1,2,3], "my": {"document": 1}}}`)
 	op := PatchOperation{Op: "add", Path: "/this/my/jam", Value: "!test!"}
+	err := op.Apply(doc)
+	assert.NotNil(t, err)
+
 	op.Apply(&doc)
 	value := getValueAt(op.Path, doc)
 	assert.Equal(t, "!test!", value)

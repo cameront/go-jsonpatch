@@ -51,9 +51,14 @@ func getValue(path string, doc interface{}) (*ptr.JsonPointer, reflect.Kind, int
 }
 
 func getDirect(ptr interface{}) (interface{}, error) {
-	indirect := reflect.Indirect(reflect.ValueOf(ptr))
-	if !indirect.IsValid() {
+	ptrval := reflect.ValueOf(ptr)
+	if ptrval.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("Can only apply to pointers.")
+	}
+
+	indirect := reflect.Indirect(ptrval)
+	if !indirect.IsValid() {
+		return nil, fmt.Errorf("Can not apply to nil pointer.")
 	}
 	return indirect.Interface(), nil
 }
