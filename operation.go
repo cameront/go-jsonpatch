@@ -50,24 +50,39 @@ func getValue(path string, doc interface{}) (*ptr.JsonPointer, reflect.Kind, int
 	return &ptr, kind, val, nil
 }
 
+func getDirect(ptr interface{}) (interface{}, error) {
+	ptrval := reflect.ValueOf(ptr)
+	if ptrval.Kind() != reflect.Ptr {
+		return nil, fmt.Errorf("Can only apply to pointers.")
+	}
+
+	indirect := reflect.Indirect(ptrval)
+	if !indirect.IsValid() {
+		return nil, fmt.Errorf("Can not apply to nil pointer.")
+	}
+	return indirect.Interface(), nil
+}
+
 func (self *PatchOperation) Apply(doc interface{}) error {
 	var mod map[string]interface{}
-	isMap := true
+	direct, err := getDirect(doc)
+	if err != nil {
+		return err
+	}
+
 	// This is ugly and hacky, but because the version of jsonpointer we're using
 	// doesn't replace the entire document for empty paths, we nest it one level
 	// deep and prefix the from/path with our own key.
-	switch t := doc.(type) {
-	case *map[string]interface{}:
-		mod = map[string]interface{}{"jp": *t}
-	case *[]interface{}:
-		mod = map[string]interface{}{"jp": *t}
-		isMap = false
+	switch t := direct.(type) {
+	case map[string]interface{}:
+		mod = map[string]interface{}{"jp": t}
+	case []interface{}:
+		mod = map[string]interface{}{"jp": t}
 	default:
 		return fmt.Errorf("Can only apply to pointers to maps and arrays of interfaces.")
 	}
 	path := "/jp" + self.Path
 	from := "/jp" + self.From
-	var err error
 	switch self.Op {
 	case Add:
 		err = add(path, self.Value, mod)
@@ -84,12 +99,17 @@ func (self *PatchOperation) Apply(doc interface{}) error {
 	default:
 		err = fmt.Errorf("Unknown operation type: %s", self.Op)
 	}
+
 	// Convert it back out before returning.
-	if isMap {
+	switch doc.(type) {
+	case *map[string]interface{}:
 		*doc.(*map[string]interface{}) = mod["jp"].(map[string]interface{})
-	} else {
+	case *[]interface{}:
 		*doc.(*[]interface{}) = mod["jp"].([]interface{})
+	case *interface{}:
+		*doc.(*interface{}) = mod["jp"].(interface{})
 	}
+
 	return err
 }
 
