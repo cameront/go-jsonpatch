@@ -1,32 +1,71 @@
 package jsonpatch
 
 import (
-	"github.com/stretchr/testify/assert"
+	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestMakePatch(t *testing.T) {
-	// Test map
-	docA := getMapDoc(`{"this":{"is":"my", "document":"sir"}}`)
-	docB := getMapDoc(`{"this":{"document":"my", "is":"sir", "now":{"go":"away!"}}}`)
-	patch, err := MakePatch(docA, docB)
-	assert.Nil(t, err)
-	assert.Equal(t, 3, len(patch.Operations))
-	// TODO: This test must depend on the ordering of a map iteration, because I'm getting
-	// occasional failures occasionally with the ordering of the following two lines.
-	assert.Equal(t, PatchOperation{Op: "replace", Path: "/this/is", Value: "sir"}, patch.Operations[0])
-	assert.Equal(t, PatchOperation{Op: "replace", Path: "/this/document", Value: "my"}, patch.Operations[1])
-	assert.Equal(t, PatchOperation{Op: "add", Path: "/this/now", Value: map[string]interface{}{"go": "away!"}}, patch.Operations[2])
+// TestMakePatch_nop ensures that MakePatch returns an empty patch when the
+// input equals the output.
+func TestMakePatch_nop(t *testing.T) {
+	for i, test := range []struct {
+		src string
+	}{
+		{ // simple map
+			`{"a":1,"b":2}`,
+		},
+		{ // nested map
+			`{"a":{"b":"c", "d":"e"}}`,
+		},
+		{ // array
+			`{"a":[0, 1, 2, 3]}`,
+		},
+	} {
+		index := fmt.Sprintf("test %d", i)
+		docA := getMapDoc(test.src)
+		docB := getMapDoc(test.src)
+		patch, err := MakePatch(docA, docB)
+		assert.Nil(t, err, index)
+		assert.Equal(t, len(patch.Operations), 0, index)
+	}
+}
 
-	// Test array
-	docA = getMapDoc(`{"a":[0, 1, 2, 3]}`)
-	docB = getMapDoc(`{"a":[1, 2, 4, "hi"]}`)
-	patch, err = MakePatch(docA, docB)
-	assert.Nil(t, err)
-	assert.Equal(t, 3, len(patch.Operations))
-	assert.Equal(t, PatchOperation{Op: "remove", Path: "/a/0"}, patch.Operations[0])
-	assert.Equal(t, PatchOperation{Op: "replace", Path: "/a/2", Value: 4}, patch.Operations[1])
-	assert.Equal(t, PatchOperation{Op: "add", Path: "/a/3", Value: "hi"}, patch.Operations[2])
+// TestMakePatch ensures that patches cleanly apply to the original documents
+// and produce a document equivalent to the target.
+func TestMakePatch(t *testing.T) {
+	for i, test := range []struct {
+		src, dst string
+	}{
+		{ // simple map operations.
+			`{"a":1,"b":2}`,
+			`{"a":2,"b":1}`,
+		},
+		{ // nested map operations
+			`{"this":{"is":"my", "document":"sir"}}`,
+			`{"this":{"document":"my", "is":"sir", "now":{"go":"away!"}}}`,
+		},
+		{ // array operations
+			`{"a":[0, 1, 2, 3]}`,
+			`{"a":[1, 2, 4, "hi"]}`,
+		},
+		/* BUG: this test panics
+		{ // nested array operations
+			`{"a":[0, [1, 2, 3], 5, 2]}`,
+			`{"a":[1, [1, 0, 2, 3, 5], "x", 2]}`,
+		},
+		*/
+	} {
+		index := fmt.Sprintf("test %d", i)
+		docA := getMapDoc(test.src)
+		docB := getMapDoc(test.dst)
+		patch, err := MakePatch(docA, docB)
+		assert.Nil(t, err, index)
+		err = patch.Apply(&docA)
+		assert.Nil(t, err, index)
+		assert.Equal(t, docA, docB, index)
+	}
 }
 
 func TestApplyPatchFromString(t *testing.T) {
