@@ -11,52 +11,7 @@ import (
 	"strings"
 )
 
-/*
-Patch is a list of Patch Operations.
-
->>> patch = JsonPatch([
-...     {'op': 'add', 'path': '/foo', 'value': 'bar'},
-...     {'op': 'add', 'path': '/baz', 'value': [1, 2, 3]},
-...     {'op': 'remove', 'path': '/baz/1'},
-...     {'op': 'test', 'path': '/baz', 'value': [1, 3]},
-...     {'op': 'replace', 'path': '/baz/0', 'value': 42},
-...     {'op': 'remove', 'path': '/baz/1'},
-... ])
->>> doc = {}
->>> result = patch.apply(doc)
->>> expected = {'foo': 'bar', 'baz': [42]}
->>> result == expected
-True
-
-JsonPatch object is iterable, so you could easily access to each patch
-statement in loop:
-
->>> lpatch = list(patch)
->>> expected = {'op': 'add', 'path': '/foo', 'value': 'bar'}
->>> lpatch[0] == expected
-True
->>> lpatch == patch.patch
-True
-
-Also JsonPatch could be converted directly to :class:`bool` if it contains
-any operation statements:
-
->>> bool(patch)
-True
->>> bool(JsonPatch([]))
-False
-
-This behavior is very handy with :func:`make_patch` to write more readable
-code:
-
->>> old = {'foo': 'bar', 'numbers': [1, 3, 4, 8]}
->>> new = {'baz': 'qux', 'numbers': [1, 4, 7]}
->>> patch = make_patch(old, new)
->>> if patch:
-...     # document have changed, do something useful
-...     patch.apply(old)    #doctest: +ELLIPSIS
-{...}
-*/
+// Patch is a list of PatchOperations.
 type Patch struct {
 	Operations []PatchOperation
 }
@@ -87,30 +42,21 @@ func FromString(str string) (Patch, error) {
 	return patch, err
 }
 
-/*
-MakePatch generates patch by comparing of two document objects. Actually is
-a proxy to :meth:`JsonPatch.from_diff` method.
-
-:param src: Data source document object.
-:type src: dict
-
-:param dst: Data source document object.
-:type dst: dict
-
->>> src = {'foo': 'bar', 'numbers': [1, 3, 4, 8]}
->>> dst = {'baz': 'qux', 'numbers': [1, 4, 7]}
->>> patch = make_patch(src, dst)
->>> new = patch.apply(src)
->>> new == dst
-True
-*/
+// MakePatch generates a patch by comparing two documents.
 func MakePatch(src interface{}, dst interface{}) (Patch, error) {
 	return MakeDiff(src, dst)
 }
 
 func MakeDiff(src, dst interface{}) (Patch, error) {
-	mapSrc := src.(map[string]interface{})
-	mapDst := dst.(map[string]interface{})
+	mapSrc, ok := src.(map[string]interface{})
+	if !ok {
+		return Patch{}, fmt.Errorf("not a valid map: %T", src)
+	}
+	mapDst, ok := dst.(map[string]interface{})
+	if !ok {
+		return Patch{}, fmt.Errorf("not a valid map: %T", dst)
+	}
+
 	patch := Patch{[]PatchOperation{}}
 	for _, opPtr := range compareDicts("", mapSrc, mapDst) {
 		patch.Operations = append(patch.Operations, *opPtr)
@@ -174,12 +120,12 @@ func longestCommonSubsequence(src, dst []interface{}) {
 // Returns pair of ranges of longest common subsequence for the `src`
 // and `dst` lists.
 //
-// >>> src = [1, 2, 3, 4]
-// >>> dst = [0, 1, 2, 3, 5]
-// >>> # The longest common subsequence for these lists is [1, 2, 3]
-// ... # which is located at (0, 3) index range for src list and (1, 4) for
-// ... # dst one. Tuple of these ranges we should get back.
-// ... assert ((0, 3), (1, 4)) == _longest_common_subseq(src, dst)
+//		>>> src = [1, 2, 3, 4]
+//		>>> dst = [0, 1, 2, 3, 5]
+//		>>> # The longest common subsequence for these lists is [1, 2, 3]
+//		... # which is located at (0, 3) index range for src list and (1, 4) for
+//		... # dst one. Tuple of these ranges we should get back.
+//		... assert ((0, 3), (1, 4)) == _longest_common_subseq(src, dst)
 func longestCommonSubseq(src, dst []interface{}) (rangeSrc *intPair, rangeDst *intPair) {
 	lenSrc, lenDst := len(src), len(dst)
 	dRange := []int{}
@@ -238,24 +184,24 @@ type commonSeqNode struct {
 // side are subsequence for `src` list and leaves on the right one for `dst`,
 // our tree would looks like::
 //
-//     [1, 2]
-//    /     \
-// [0]       []
-//          /  \
-//       [3]   [4, 5]
+//		    [1, 2]
+//		   /     \
+//		[0]       []
+//		         /  \
+//		      [3]   [4, 5]
 //
 // This function generate the similar structure as flat tree, but without
 // nodes with common subsequences - since we're don't need them - only with
 // left and right leaves::
 //
-//     []
-//    / \
-// [0]  []
-//     / \
-//  [3]  [4, 5]
+//		    []
+//		   / \
+//		[0]  []
+//		    / \
+//		 [3]  [4, 5]
 //
-//     The `bx` is the absolute range for currently processed subsequence of
-//     `src` list.  The `by` means the same, but for the `dst` list.
+// The `bx` is the absolute range for currently processed subsequence of `src`
+// list.  The `by` means the same, but for the `dst` list.
 func splitByCommonSeq(src, dst []interface{}, bx, by *intPair) commonSeqNode {
 	// Prevent useless comparisons in future
 	if bx.a == bx.b {
