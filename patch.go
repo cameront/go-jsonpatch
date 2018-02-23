@@ -16,6 +16,10 @@ type Patch struct {
 	Operations []PatchOperation
 }
 
+func (p Patch) MarshalJSON() ([]byte, error) {
+	return json.Marshal(p.Operations)
+}
+
 func (p *Patch) UnmarshalJSON(b []byte) error {
 	ops := []PatchOperation{}
 	err := json.Unmarshal(b, &ops)

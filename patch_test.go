@@ -1,6 +1,7 @@
 package jsonpatch
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -65,6 +66,41 @@ func TestMakePatch(t *testing.T) {
 		err = patch.Apply(&docA)
 		assert.Nil(t, err, index)
 		assert.Equal(t, docA, docB, index)
+	}
+}
+
+func TestPatchMarshalAndUnmarshal(t *testing.T) {
+	for i, test := range []struct {
+		src  string
+		dest Patch
+	}{
+		{ // empty
+			`[]`,
+			Patch{Operations: []PatchOperation{}},
+		},
+		{ // value is ommitted
+			`[{"from":"/foo","op":"move","path":"/foo2"}]`,
+			Patch{Operations: []PatchOperation{PatchOperation{Op: Move, From: "/foo", Path: "/foo2"}}},
+		},
+		{ // from is ommitted
+			`[{"op":"replace","path":"/foo","value":"foo"}]`,
+			Patch{Operations: []PatchOperation{PatchOperation{Op: Replace, Path: "/foo", Value: "foo"}}},
+		},
+		{ // value and from are ommitted
+			`[{"op":"remove","path":"/foo"}]`,
+			Patch{Operations: []PatchOperation{PatchOperation{Op: Remove, Path: "/foo"}}},
+		},
+	} {
+		index := fmt.Sprintf("test %d", i)
+
+		var p Patch
+		err := json.Unmarshal([]byte(test.src), &p)
+		assert.Nil(t, err, index)
+		assert.Equal(t, p, test.dest)
+
+		jp, err := json.Marshal(p)
+		assert.Nil(t, err, index)
+		assert.Equal(t, string(jp), test.src)
 	}
 }
 
