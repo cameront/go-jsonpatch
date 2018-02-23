@@ -2,10 +2,11 @@ package jsonpatch
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
-	ptr "github.com/xeipuuv/gojsonpointer"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	ptr "github.com/xeipuuv/gojsonpointer"
 )
 
 func TestAdd(t *testing.T) {
@@ -297,12 +298,12 @@ func TestUnrecognizedElement(t *testing.T) {
 }
 
 func TestAppend(t *testing.T) {
-	doc := getMapDoc(`{"foo": [1, 2]}`)
-	patch1 := PatchOperation{Op: "add", Path: "/foo/-", Value: 3}
-	patch2 := PatchOperation{Op: "add", Path: "/foo/-", Value: 4}
+	doc := getMapDoc(`{"foo": ["a", "b"]}`)
+	patch1 := PatchOperation{Op: "add", Path: "/foo/-", Value: "c"}
+	patch2 := PatchOperation{Op: "add", Path: "/foo/-", Value: "d"}
 	patch1.Apply(&doc)
 	patch2.Apply(&doc)
-	assert.Equal(t, []interface{}{1, 2, 3, 4}, doc["foo"].([]interface{}))
+	assert.Equal(t, []interface{}{"a", "b", "c", "d"}, doc["foo"].([]interface{}))
 }
 
 // test when type of input is interface{}
